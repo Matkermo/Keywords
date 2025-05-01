@@ -9,7 +9,7 @@ LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "E
 
 TEXTS = {
     "FR": {
-        "app_title": "Pré-traitement SEMrush SEO : Branded & Non-branded",
+        "app_title": "Pré-traitement SEMrush SEO : Branded & Non-branded V1.1",
         "app_desc": "Chargez plusieurs fichiers SEMrush et vos marques pour séparer les requêtes de marque et hors marque.",
         "upload_label": "Fichiers SEMrush (.csv, .xlsx)",
         "min_volume": "Volume minimum",
