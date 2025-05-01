@@ -3,23 +3,10 @@ import pandas as pd
 from io import BytesIO
 import re
 
-# Emoji drapeaux pour menu
-country_flags = {
-    "FR": "🇫🇷",
-    "EN": "🇺🇸"
-}
+country_flags = {"FR": "🇫🇷", "EN": "🇺🇸"}
+LANG_OPTIONS = [f"FR {country_flags['FR']}", f"EN {country_flags['EN']}"]
+LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "EN"}
 
-LANG_OPTIONS = [
-    f"FR {country_flags['FR']}",
-    f"EN {country_flags['EN']}"
-]
-
-LANG_CODES = {
-    f"FR {country_flags['FR']}": "FR",
-    f"EN {country_flags['EN']}": "EN"
-}
-
-# ----- Textes multilingues -----
 TEXTS = {
     "FR": {
         "app_title": "Pré-traitement SEMrush SEO : Branded & Non-branded",
@@ -35,6 +22,8 @@ TEXTS = {
         "kw_total": "KW total",
         "kw_brand": "KW branded",
         "kw_nonbrand": "KW non-branded",
+        "hard_kd": "Hard KD",
+        "low_volume": "Low Volume",
         "pct_brand": "% branded",
         "pct_nonbrand": "% non-branded",
         "dl_label": "Télécharger résultats Excel",
@@ -46,9 +35,7 @@ TEXTS = {
         "no_data": "Aucune donnée exploitable. Vérifiez vos fichiers.",
         "total": "TOTAL",
         "true": "VRAI",
-        "false": "FAUX",
-        "branded": "Branded",
-        "reason": "reason"
+        "false": "FAUX"
     },
     "EN": {
         "app_title": "SEMrush SEO Pre-processing: Branded & Non-branded",
@@ -64,6 +51,8 @@ TEXTS = {
         "kw_total": "KW total",
         "kw_brand": "KW branded",
         "kw_nonbrand": "KW non-branded",
+        "hard_kd": "Hard KD",
+        "low_volume": "Low Volume",
         "pct_brand": "% branded",
         "pct_nonbrand": "% non-branded",
         "dl_label": "Download Excel results",
@@ -75,9 +64,7 @@ TEXTS = {
         "no_data": "No usable data. Check your files.",
         "total": "TOTAL",
         "true": "TRUE",
-        "false": "FALSE",
-        "branded": "Branded",
-        "reason": "reason"
+        "false": "FALSE"
     }
 }
 
@@ -85,19 +72,18 @@ def is_branded_kw(keyword, brand_set):
     lower_keyword = str(keyword).lower()
     keyword_words = re.findall(r"\b[\w'-]+\b", lower_keyword)
     for brand in brand_set:
-        brand = brand.strip().lower()
+        brand = str(brand).strip().lower()
         if not brand:
             continue
         if len(brand) <= 3:
             if brand in keyword_words:
-                return (1, brand)
+                return True
         else:
             if brand in lower_keyword:
-                return (1, brand)
-    return (0, "")
+                return True
+    return False
 
 st.set_page_config(layout="wide")
-# Barre de langue en haut à droite
 col1, colspace, col2 = st.columns([6, 2, 1])
 with col2:
     select_lang = st.selectbox("", LANG_OPTIONS, label_visibility='collapsed')
@@ -116,6 +102,7 @@ if uploaded_files:
     brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"], key="brand_file")
 
     if st.button(TEXTS[langue]["run"], key="run_button"):
+        # Construction du set de marque
         brand_set = set([b.strip() for b in brand_input.splitlines() if b.strip()]) if brand_input else set()
 
         if brand_file:
@@ -139,51 +126,69 @@ if uploaded_files:
         for i, upl in enumerate(uploaded_files):
             try:
                 if upl.type == "text/csv":
-                    df = pd.read_csv(upl, dtype=str)
+                    df = pd.read_csv(upl)
                 else:
-                    df = pd.read_excel(upl, dtype=str)
-
+                    df = pd.read_excel(upl)
                 if 'Keyword' not in df.columns:
                     st.error(f"{TEXTS[langue]['error_keyword']} {list(df.columns)}")
                     continue
 
-                # conversion Search Volume & Keyword Difficulty
+                # Normalisation des colonnes
                 df['Search Volume'] = pd.to_numeric(df['Search Volume'], errors='coerce').fillna(0)
                 df['Keyword Difficulty'] = pd.to_numeric(df['Keyword Difficulty'], errors='coerce').fillna(0)
 
-                # ----- AJOUT DE LA COLONNE CATEGORY -----
-                def get_category(row):
-                    if row['Keyword Difficulty'] > max_kd:
-                        return "hard KD"
-                    elif row['Search Volume'] < min_volume:
-                        return "low search volume"
+                # Colonne branded VRAI/FAUX || TRUE/FALSE
+                branded_col = []
+                for kw in df['Keyword']:
+                    branded = is_branded_kw(kw, brand_set)
+                    branded_col.append(TEXTS[langue]["true"] if branded else TEXTS[langue]["false"])
+                # Insert "branded" après "Keyword"
+                idx_kw = df.columns.get_loc('Keyword')
+                df.insert(idx_kw + 1, 'branded', branded_col)
+
+                # Colonne Category ("Hard KD", "Low Volume", "")
+                category_col = []
+                for _, row in df.iterrows():
+                    if row['Search Volume'] < min_volume:
+                        category_col.append("Low Volume")
+                    elif row['Keyword Difficulty'] > max_kd:
+                        category_col.append("Hard KD")
                     else:
-                        return ""
-                df['Category'] = df.apply(get_category, axis=1)
-                # Insert 'Category' juste après 'Keyword'
-                kw_idx = df.columns.get_loc('Keyword')
-                categories = df.pop('Category')
-                df.insert(kw_idx + 1, 'Category', categories)
+                        category_col.append("")
+                df.insert(idx_kw + 2, 'Category', category_col)
 
-                # --- FILTRAGE CLASSIQUE BRANDED/NON-BRANDED ---
-                filtered_df = df[(df['Search Volume'] >= min_volume) & (df['Keyword Difficulty'] <= max_kd)].copy()
-                branded_results = filtered_df['Keyword'].map(lambda x: is_branded_kw(x, brand_set))
-                filtered_df[TEXTS[langue]["branded"]] = branded_results.map(lambda x: TEXTS[langue]["true"] if x[0] else TEXTS[langue]["false"])
-                filtered_df[TEXTS[langue]["reason"]] = branded_results.map(lambda x: x[1])
+                # Synthèse exclusive
+                # - KW Branded: lignes branded ET category vide
+                # - KW Non-branded: lignes non-branded ET category vide
+                # - Hard KD: category == "Hard KD"
+                # - Low Volume: category == "Low Volume"
+                mask_category_empty = (df['Category'] == "")
+                mask_branded = df['branded'] == TEXTS[langue]["true"]
+                mask_nonbranded = df['branded'] == TEXTS[langue]["false"]
 
-                nb_branded = sum(filtered_df[TEXTS[langue]["branded"]] == TEXTS[langue]["true"])
-                nb_total = len(filtered_df)
+                n_total = len(df)
+                n_kwbrand = ((mask_category_empty) & (mask_branded)).sum()
+                n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
+                n_hardkd = (df['Category'] == "Hard KD").sum()
+                n_lowvol = (df['Category'] == "Low Volume").sum()
+
+                brand_pct = f"{100 * n_kwbrand / n_total:.1f}%" if n_total > 0 else "0%"
+                nonbrand_pct = f"{100 * n_kwnonbrand / n_total:.1f}%" if n_total > 0 else "0%"
+
                 synthese.append({
                     "Fichier": upl.name,
-                    TEXTS[langue]["kw_total"]: nb_total,
-                    TEXTS[langue]["kw_brand"]: nb_branded,
-                    TEXTS[langue]["kw_nonbrand"]: nb_total - nb_branded,
-                    TEXTS[langue]["pct_brand"]: f"{100 * nb_branded / nb_total:.1f}%" if nb_total > 0 else "0%",
-                    TEXTS[langue]["pct_nonbrand"]: f"{100 * (nb_total - nb_branded) / nb_total:.1f}%" if nb_total > 0 else "0%",
+                    TEXTS[langue]["kw_total"]: n_total,
+                    TEXTS[langue]["kw_brand"]: n_kwbrand,
+                    TEXTS[langue]["kw_nonbrand"]: n_kwnonbrand,
+                    TEXTS[langue]["hard_kd"]: n_hardkd,
+                    TEXTS[langue]["low_volume"]: n_lowvol,
+                    TEXTS[langue]["pct_brand"]: brand_pct,
+                    TEXTS[langue]["pct_nonbrand"]: nonbrand_pct,
                 })
-                all_processed.append(filtered_df)
 
-                st.write(f"✅ {upl.name}: {nb_total} lignes traitées")
+                all_processed.append(df)
+
+                st.write(f"✅ {upl.name}: {n_total} lignes chargées")
             except Exception as e:
                 st.error(f"{TEXTS[langue]['error_parse']} {e}")
             progress.progress(int(100 * (i + 1) / len(uploaded_files)))
@@ -191,42 +196,41 @@ if uploaded_files:
         if all_processed:
             fusion = pd.concat(all_processed, ignore_index=True)
             synthese_df = pd.DataFrame(synthese)
-            # Ajout ligne TOTAL
+
+            # Ligne total
             if not synthese_df.empty:
                 total_kw = synthese_df[TEXTS[langue]["kw_total"]].sum()
                 total_branded = synthese_df[TEXTS[langue]["kw_brand"]].sum()
                 total_nonbranded = synthese_df[TEXTS[langue]["kw_nonbrand"]].sum()
+                total_hardkd = synthese_df[TEXTS[langue]["hard_kd"]].sum()
+                total_lowvol = synthese_df[TEXTS[langue]["low_volume"]].sum()
                 total_row = {
                     "Fichier": TEXTS[langue]["total"],
                     TEXTS[langue]["kw_total"]: total_kw,
                     TEXTS[langue]["kw_brand"]: total_branded,
                     TEXTS[langue]["kw_nonbrand"]: total_nonbranded,
+                    TEXTS[langue]["hard_kd"]: total_hardkd,
+                    TEXTS[langue]["low_volume"]: total_lowvol,
                     TEXTS[langue]["pct_brand"]: f"{100 * total_branded / total_kw:.1f}%" if total_kw > 0 else "0%",
                     TEXTS[langue]["pct_nonbrand"]: f"{100 * total_nonbranded / total_kw:.1f}%" if total_kw > 0 else "0%",
                 }
                 synthese_df = pd.concat([synthese_df, pd.DataFrame([total_row])], ignore_index=True)
 
             st.success(TEXTS[langue]["n_lines"].format(len(fusion)))
-            # --------------------------------------
+
+            # ---------- EXPORT ----------
             output = BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 fusion.to_excel(writer, index=False, sheet_name="KW filtrés")
                 synthese_df.to_excel(writer, index=False, sheet_name="Synthese")
-                workbook = writer.book
-                for sheetname, sheetdata in zip(['KW filtrés', 'Synthese'], [fusion, synthese_df]):
-                    worksheet = writer.sheets[sheetname]
-                    for col_num, value in enumerate(sheetdata.columns):
-                        col_values = sheetdata[value]
-                        if col_values.astype(str).str.startswith('http').any():
-                            url_format = workbook.add_format({'num_format': '@'})
-                            worksheet.set_column(col_num, col_num, None, url_format)
+                # Aucun format spécial de colonne !
             st.download_button(
                 label=TEXTS[langue]["dl_label"],
                 data=output.getvalue(),
                 file_name=TEXTS[langue]["dl_filename"],
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            # --------------------------------------
+            # ---------- AFFICHAGE ----------
             st.subheader("🔎 " + TEXTS[langue]["synth_title"])
             st.dataframe(
                 synthese_df,
@@ -238,7 +242,6 @@ if uploaded_files:
                 use_container_width=True,
                 height=60 + 35*20
             )
-
         else:
             st.warning(TEXTS[langue]["no_data"])
 else:
