@@ -147,9 +147,25 @@ if uploaded_files:
                     st.error(f"{TEXTS[langue]['error_keyword']} {list(df.columns)}")
                     continue
 
+                # conversion Search Volume & Keyword Difficulty
                 df['Search Volume'] = pd.to_numeric(df['Search Volume'], errors='coerce').fillna(0)
                 df['Keyword Difficulty'] = pd.to_numeric(df['Keyword Difficulty'], errors='coerce').fillna(0)
 
+                # ----- AJOUT DE LA COLONNE CATEGORY -----
+                def get_category(row):
+                    if row['Keyword Difficulty'] > max_kd:
+                        return "hard KD"
+                    elif row['Search Volume'] < min_volume:
+                        return "low search volume"
+                    else:
+                        return ""
+                df['Category'] = df.apply(get_category, axis=1)
+                # Insert 'Category' juste après 'Keyword'
+                kw_idx = df.columns.get_loc('Keyword')
+                categories = df.pop('Category')
+                df.insert(kw_idx + 1, 'Category', categories)
+
+                # --- FILTRAGE CLASSIQUE BRANDED/NON-BRANDED ---
                 filtered_df = df[(df['Search Volume'] >= min_volume) & (df['Keyword Difficulty'] <= max_kd)].copy()
                 branded_results = filtered_df['Keyword'].map(lambda x: is_branded_kw(x, brand_set))
                 filtered_df[TEXTS[langue]["branded"]] = branded_results.map(lambda x: TEXTS[langue]["true"] if x[0] else TEXTS[langue]["false"])
@@ -192,7 +208,6 @@ if uploaded_files:
 
             st.success(TEXTS[langue]["n_lines"].format(len(fusion)))
             # --------------------------------------
-            # TELECHARGEMENT AU-DESSUS DES DEUX TABLEAUX
             output = BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 fusion.to_excel(writer, index=False, sheet_name="KW filtrés")
@@ -213,18 +228,15 @@ if uploaded_files:
             )
             # --------------------------------------
             st.subheader("🔎 " + TEXTS[langue]["synth_title"])
-
             st.dataframe(
                 synthese_df,
                 use_container_width=True, 
                 height=min(600, 60 + 30*len(synthese_df))
             )
-
-            # Affichage 100 valeurs, mais hauteur pour 20 lignes
             st.dataframe(
                 fusion.head(100),
                 use_container_width=True,
-                height=60 + 35*20  # hauteur pour 20 lignes environ
+                height=60 + 35*20
             )
 
         else:
