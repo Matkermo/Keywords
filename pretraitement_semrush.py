@@ -5,10 +5,7 @@ import plotly.express as px
 import re
 
 # 💬 Paramètres langues et textes
-country_flags = {
-    "FR": ":flag-fr:",  # Emoji du drapeau français
-    "EN": ":us:"        # Emoji du drapeau américain
-}
+country_flags = {"FR": "🇫🇷", "EN": "🇺🇸"}
 LANG_OPTIONS = [f"FR {country_flags['FR']}", f"EN {country_flags['EN']}"]
 LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "EN"}
 
