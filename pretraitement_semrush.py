@@ -112,6 +112,15 @@ with st.sidebar:
     brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"], key="brand_file_sidebar")
     run_btn = st.button(TEXTS[langue]["run"], key="run_button_sidebar")
 
+# 🟡 Définition des couleurs par défaut pour chaque onglet
+default_colors = {
+    "synthese": ["#4CAF50", "#FF9800", "#2196F3", "#F44336"],  # Contrastes plus marqués
+}
+
+# Génération dynamique des couleurs pour chaque onglet
+for idx in range(1, 16):  # Jusqu'à 15 onglets
+    default_colors[f"onglet{idx}"] = [px.colors.qualitative.Plotly[idx % len(px.colors.qualitative.Plotly)]]
+
 if uploaded_files and run_btn:
     # 💬 Création du set branded à partir du textarea et des fichiers
     brand_set = set([b.strip() for b in brand_input.splitlines() if b.strip()]) if brand_input else set()
@@ -119,7 +128,9 @@ if uploaded_files and run_btn:
         if brand_file.type == "text/plain":
             txt_lines = brand_file.read().decode('utf-8').splitlines()
             brand_set.update([b.strip() for b in txt_lines if b.strip()])
-        elif brand_file.type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-excel"]:
+        elif brand_file.type in [
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel"]:
             df_brands = pd.read_excel(brand_file, header=None)
             brand_set.update(df_brands[0].dropna().astype(str).str.strip())
         elif brand_file.type == "text/csv":
@@ -220,31 +231,32 @@ if uploaded_files and run_btn:
 
         st.success(TEXTS[langue]["n_lines"].format(len(fusion)))
 
-        # ---------- EXPORT ----------
-        output = BytesIO()
-        fusion.to_csv(output, index=False)
-        synthese_df.to_csv(output, index=False, header=False)
-
-        st.download_button(
-            label=TEXTS[langue]["dl_label"],
-            data=output.getvalue(),
-            file_name=TEXTS[langue]["dl_filename"],
-            mime='text/csv'
-        )
-
         # 🟢 ----- AFFICHAGE par Onglets --------
-        tab1, tab2, tab3 = st.tabs(
-            ["📊 Synthèse Globale", "🗃️ Détail par fichier", "🔎 Données brutes"]
-        )
+        tabs = st.tabs(["📊 Synthèse"] + [fname.split('.')[0] for fname in fusion['Fichier'].unique()] + ["🔍 Données brutes"])
 
-        # --- Synthèse globale avec graphes
-        with tab1:
+        # Onglet Synthèse Globale
+        with tabs[0]:
             st.subheader("🔎 " + TEXTS[langue]["synth_title"])
             st.dataframe(
                 synthese_df,
                 use_container_width=True,
                 height=min(600, 60 + 30 * len(synthese_df))
             )
+
+            # Bouton de téléchargement pour la synthèse
+            @st.fragment
+            def download_synth_data():
+                st.download_button(
+                    label=TEXTS[langue]["dl_label"],
+                    icon="📥",
+                    data=synthese_df.to_csv(index=False),
+                    file_name="synthese.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    disabled=synthese_df.empty
+                )
+
+            download_synth_data()
 
             # Pie chart et bar chart
             synth_global_row = synthese_df[synthese_df["Fichier"] == TEXTS[langue]["total"]]
@@ -264,16 +276,12 @@ if uploaded_files and run_btn:
                         TEXTS[langue]["hard_kd"],
                         TEXTS[langue]["low_volume"]
                     ]
+                    colors = default_colors["synthese"]
                     fig1 = px.pie(
                         names=labels,
                         values=values,
                         color=labels,
-                        color_discrete_map={
-                            TEXTS[langue]["kw_nonbrand"]: "royalblue",
-                            TEXTS[langue]["kw_brand"]: "orange",
-                            TEXTS[langue]["hard_kd"]: "red",
-                            TEXTS[langue]["low_volume"]: "lightgrey"
-                        },
+                        color_discrete_sequence=colors,
                         title="Répartition globale des mots-clés"
                     )
                     fig1.update_traces(textinfo='percent+label')
@@ -284,36 +292,84 @@ if uploaded_files and run_btn:
                         x=labels,
                         y=values,
                         color=labels,
-                        color_discrete_map={
-                            TEXTS[langue]["kw_nonbrand"]: "royalblue",
-                            TEXTS[langue]["kw_brand"]: "orange",
-                            TEXTS[langue]["hard_kd"]: "red",
-                            TEXTS[langue]["low_volume"]: "lightgrey"
-                        },
+                        color_discrete_sequence=colors,
                         title="Distribution globale"
                     )
                     st.plotly_chart(fig2, use_container_width=True)
 
-        # --- Détail par fichier ---
-        with tab2:
-            st.subheader("🗃️ Détail")
-            st.dataframe(
-                synthese_df[synthese_df["Fichier"] != TEXTS[langue]["total"]],
-                use_container_width=True
-            )
-            for fname in fusion['Fichier'].unique() if 'Fichier' in fusion else []:
-                st.markdown(f"#### {fname}")
-                st.dataframe(fusion[fusion["Fichier"] == fname].head(30),
-                             use_container_width=True)
+        # --- Onglet par fichier avec graphiques ---
+        for idx in range(1, len(tabs) - 1):
+            fname = fusion['Fichier'].unique()[idx - 1]
+            with tabs[idx]:
+                st.subheader(f"Analyse pour {fname}")
+                file_data = fusion[fusion["Fichier"] == fname]
+                n_total = len(file_data)
+                n_kwbrand = (file_data['branded'] == TEXTS[langue]["true"]).sum()
+                n_kwnonbrand = (file_data['branded'] == TEXTS[langue]["false"]).sum()
+                n_hardkd = (file_data['Category'] == "Hard KD").sum()
+                n_lowvol = (file_data['Category'] == "Low Volume").sum()
 
-        # --- Table complète (top100) ---
-        with tab3:
-            st.subheader("🔎 Premier aperçu (100 lignes)")
-            st.dataframe(
-                fusion.head(100),
-                use_container_width=True,
-                height=60 + 35 * 20
-            )
+                brand_pct = f"{100 * n_kwbrand / n_total:.1f}%" if n_total > 0 else "0%"
+                nonbrand_pct = f"{100 * n_kwnonbrand / n_total:.1f}%" if n_total > 0 else "0%"
+
+                colors = default_colors[f"onglet{idx}"]
+
+                fig3 = px.pie(
+                    names=[TEXTS[langue]["kw_brand"], TEXTS[langue]["kw_nonbrand"]],
+                    values=[n_kwbrand, n_kwnonbrand],
+                    color_discrete_sequence=colors,
+                    title=f"Distribution des mots-clés pour {fname}"
+                )
+                st.plotly_chart(fig3, use_container_width=True)
+
+                fig4 = px.bar(
+                    x=["Hard KD", "Low Volume"],
+                    y=[n_hardkd, n_lowvol],
+                    color_discrete_sequence=colors,
+                    title=f"Répartition des catégories pour {fname}"
+                )
+                st.plotly_chart(fig4, use_container_width=True)
+
+                # Affichage des 20 premières lignes
+                st.write("### Aperçu des 20 premières lignes")
+                st.dataframe(file_data.head(20), use_container_width=True)
+
+                # Bouton de téléchargement pour chaque fichier
+                @st.fragment
+                def download_file_data():
+                    st.download_button(
+                        label=TEXTS[langue]["dl_label"],
+                        icon="📥",
+                        data=file_data.to_csv(index=False),
+                        file_name=f"{fname.split('.')[0]}_data.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        disabled=file_data.empty
+                    )
+
+                download_file_data()
+
+        # --- Onglet données brutes ---
+        with tabs[-1]:
+            st.subheader("🔍 Données brutes")
+            st.write("Aperçu des données traitées :")
+            st.dataframe(fusion, use_container_width=True)
+
+            # 🔄 Fonction de téléchargement avec st.fragment
+            @st.fragment
+            def download_data():
+                st.download_button(
+                    label=TEXTS[langue]["dl_label"],
+                    icon="📥",
+                    data=fusion.to_csv(index=False),
+                    file_name=TEXTS[langue]["dl_filename"],
+                    mime="text/csv",
+                    use_container_width=True,
+                    disabled=fusion.empty
+                )
+
+            download_data()
+
     else:
         st.warning(TEXTS[langue]["no_data"])
 else:
