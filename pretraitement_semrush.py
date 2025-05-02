@@ -107,10 +107,10 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     
     with col1:
-        min_volume = st.number_input(TEXTS[langue]["min_volume"], min_value=0, value=0)
+        min_volume = st.number_input(TEXTS[langue]["min_volume"], min_value=0, value=100)
     
     with col2:
-        max_kd = st.number_input(TEXTS[langue]["max_kd"], min_value=0, max_value=100, value=100)
+        max_kd = st.number_input(TEXTS[langue]["max_kd"], min_value=0, max_value=100, value=50)
 
     st.markdown("---")
     st.write(TEXTS[langue]["brands_list"])
