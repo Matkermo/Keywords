@@ -12,12 +12,12 @@ LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "E
 TEXTS = {
     "FR": {
         "app_title": "Pré-traitement SEO : Branded & Non-branded",
-        "app_desc": "Chargez plusieurs fichiers SEMrush et vos marques pour séparer les requêtes de marque et hors marque.",
+        "app_desc": "Chargez plusieurs fichiers SEMrush et vos mots spécifiques pour séparer les mots-clés branded et non-branded.",
         "upload_label": "Fichiers SEMrush (.csv, .xlsx)",
         "min_volume": "Volume minimum",
         "max_kd": "Difficulté KD max (%)",
-        "brands_list": "Mots-clés de marque (branded)",
-        "manual_brands": "Entrez vos marques (1 par ligne)",
+        "brands_list": "Mots-clés branded",
+        "manual_brands": "Entrez vos mots spécifiques (1 par ligne)",
         "brand_file": "Ou importez un fichier de mots branded (txt, csv ou xlsx)",
         "run": "Lancer le pré-traitement",
         "synth_title": "Synthèse par source",
@@ -41,12 +41,12 @@ TEXTS = {
     },
     "EN": {
         "app_title": "SEO Pre-processing: Branded & Non-branded",
-        "app_desc": "Upload one or more SEMrush files and your brands to separate branded and non-branded queries.",
+        "app_desc": "Upload one or more SEMrush files and your brands to separate branded and non-branded keywords.",
         "upload_label": "SEMrush files (.csv, .xlsx)",
         "min_volume": "Minimum search volume",
         "max_kd": "Max KD (%)",
         "brands_list": "Brand keywords",
-        "manual_brands": "Enter brands (one per line)",
+        "manual_brands": "Enter specifics words/brands (one per line)",
         "brand_file": "Or import a list of branded keywords (txt, csv, xlsx)",
         "run": "Run pre-processing",
         "synth_title": "Summary per source",
@@ -101,24 +101,30 @@ st.markdown(TEXTS[langue]["app_desc"])
 
 # 🟢 Sidebar Pro IU
 with st.sidebar:
-    st.header("SEMrush")
+    st.header("Imports SEMrush")
     uploaded_files = st.file_uploader(TEXTS[langue]["upload_label"], accept_multiple_files=True)
     st.markdown("---")
-    min_volume = st.number_input(TEXTS[langue]["min_volume"], min_value=0, value=0, key="min_volume_sidebar")
-    max_kd = st.number_input(TEXTS[langue]["max_kd"], min_value=0, max_value=100, value=100, key="max_kd_sidebar")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        min_volume = st.number_input(TEXTS[langue]["min_volume"], min_value=0, value=0)
+    
+    with col2:
+        max_kd = st.number_input(TEXTS[langue]["max_kd"], min_value=0, max_value=100, value=100)
+
     st.markdown("---")
     st.write(TEXTS[langue]["brands_list"])
-    brand_input = st.text_area(TEXTS[langue]["manual_brands"], height=100, key="manual_brands_sidebar")
-    brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"], key="brand_file_sidebar")
-    run_btn = st.button(TEXTS[langue]["run"], key="run_button_sidebar")
+    brand_input = st.text_area(TEXTS[langue]["manual_brands"], height=100)
+    brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"])
+    run_btn = st.button(TEXTS[langue]["run"])
 
 # 🟡 Définition des couleurs par défaut pour chaque onglet
 default_colors = {
-    "synthese": ["#4CAF50", "#FF9800", "#2196F3", "#F44336"],  # Contrastes plus marqués
+    "synthese": ["#4CAF50", "#FF9800", "#2196F3", "#F44336"],
 }
 
 # Génération dynamique des couleurs pour chaque onglet
-for idx in range(1, 16):  # Jusqu'à 15 onglets
+for idx in range(1, 16):
     default_colors[f"onglet{idx}"] = [px.colors.qualitative.Plotly[idx % len(px.colors.qualitative.Plotly)]]
 
 if uploaded_files and run_btn:
