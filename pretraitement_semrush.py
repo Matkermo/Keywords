@@ -27,7 +27,7 @@ TEXTS = {
         "hard_kd": "↗️ Hard KD",
         "low_volume": "↙️ Low Volume",
         "dl_label": "Télécharger résultats CSV",
-        "synth_dl_label": "Télécharger CSV synthèse",  # Nouvelle clé
+        "synth_dl_label": "Télécharger CSV synthèse",
         "dl_filename": "kw_filtrés.csv",
         "n_lines": "Traitement terminé ({:d} lignes)",
         "info_upload": "Veuillez charger au moins un fichier SEMrush.",
@@ -37,7 +37,7 @@ TEXTS = {
         "total": "TOTAL",
         "true": "VRAI",
         "false": "FAUX",
-        "company": "Compagnie"  # Clé pour la colonne mise à jour
+        "company": "Compagnie"
     },
     "EN": {
         "app_title": "🔍 SEO Pre-processing: Branded & Non-branded 🇺🇸",
@@ -46,7 +46,7 @@ TEXTS = {
         "min_volume": "Minimum volume",
         "max_kd": "Max KD (%)",
         "brands_list": "📝 Brand keywords",
-        "manual_brands": "Enter specifics words/brands (one per line)",
+        "manual_brands": "Enter specific words/brands (one per line)",
         "brand_file": "📎 import a list of branded keywords (txt, csv, xlsx)",
         "run": "Run pre-processing",
         "synth_title": "Summary per source",
@@ -56,7 +56,7 @@ TEXTS = {
         "hard_kd": "↗️ Hard KD",
         "low_volume": "↙️ Low Volume",
         "dl_label": "Download CSV results",
-        "synth_dl_label": "Download CSV summary",  # Nouvelle clé
+        "synth_dl_label": "Download CSV summary",
         "dl_filename": "filtered_kw.csv",
         "n_lines": "Done ({:d} rows processed)",
         "info_upload": "Please upload at least one SEMrush file.",
@@ -66,7 +66,7 @@ TEXTS = {
         "total": "TOTAL",
         "true": "TRUE",
         "false": "FALSE",
-        "company": "Company"  # Clé pour la colonne mise à jour
+        "company": "Company"
     }
 }
 
@@ -199,7 +199,7 @@ if uploaded_files and run_btn:
             n_kwbrand = ((mask_category_empty) & (mask_branded)).sum()
             n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
             n_hardkd = (df['Category'] == "Hard KD").sum()
-            n_lowvol = (df['Category'] == "Low Volume").sum()
+            n_lowvol = (df['Category'] == "Low Volume").sum();
 
             synthese.append({
                 "Fichier": file_name,  # Utiliser le nom sans extension
@@ -255,7 +255,7 @@ if uploaded_files and run_btn:
             @st.fragment
             def download_synth_data():
                 st.download_button(
-                    label=TEXTS[langue]["synth_dl_label"],  # Modifié ici pour afficher "synthèse"
+                    label=TEXTS[langue]["synth_dl_label"],
                     icon="📥",
                     data=synthese_df.to_csv(index=False),
                     file_name="synthese.csv",
@@ -270,6 +270,7 @@ if uploaded_files and run_btn:
             synth_global_row = synthese_df[synthese_df[TEXTS[langue]["company"]] == TEXTS[langue]["total"]]
             if not synth_global_row.empty:
                 colpie, colbar = st.columns(2)
+
                 # Pie chart
                 with colpie:
                     values = [
@@ -292,7 +293,7 @@ if uploaded_files and run_btn:
                         color_discrete_sequence=colors,
                         title="Répartition globale des mots-clés"
                     )
-                    fig1.update_traces(textinfo='percent+label')
+                    fig1.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
                     st.plotly_chart(fig1, use_container_width=True)
 
                 # Bar chart
@@ -304,6 +305,7 @@ if uploaded_files and run_btn:
                         color_discrete_sequence=colors,
                         title="Distribution globale"
                     )
+                    fig2.update_traces(texttemplate='%{y}', textposition='outside')  # Affiche uniquement les valeurs
                     st.plotly_chart(fig2, use_container_width=True)
 
         # Onglet par fichier avec graphiques
@@ -331,7 +333,7 @@ if uploaded_files and run_btn:
                         color_discrete_sequence=colors,
                         title=f"Répartition globale des mots-clés pour {fname}"
                     )
-                    fig3.update_traces(textinfo='percent+label')
+                    fig3.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
                     st.plotly_chart(fig3, use_container_width=True)
 
                 with colbar:
@@ -342,6 +344,7 @@ if uploaded_files and run_btn:
                         color_discrete_sequence=colors,
                         title=f"Distribution globale pour {fname}"
                     )
+                    fig4.update_traces(texttemplate='%{y}', textposition='outside')  # Affiche uniquement les valeurs
                     st.plotly_chart(fig4, use_container_width=True)
 
                 # Affichage des 20 premières lignes
