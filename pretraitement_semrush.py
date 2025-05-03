@@ -18,7 +18,7 @@ TEXTS = {
         "max_kd": "Difficulté KD max (%)",
         "brands_list": "📝 Mots-clés branded",
         "manual_brands": "Entrez vos mots spécifiques (1 par ligne)",
-        "brand_file": "📎importez un fichier de mots branded (txt, csv ou xlsx)",
+        "brand_file": "📎importe un fichier de mots branded (txt, csv ou xlsx)",
         "run": "Lancer le pré-traitement",
         "synth_title": "Synthèse par source",
         "kw_total": "KW total",
@@ -26,9 +26,8 @@ TEXTS = {
         "kw_nonbrand": "KW non-branded",
         "hard_kd": "↗️ Hard KD",
         "low_volume": "↙️ Low Volume",
-        "pct_brand": "% branded",
-        "pct_nonbrand": "% non-branded",
         "dl_label": "Télécharger résultats CSV",
+        "synth_dl_label": "Télécharger CSV synthèse",  # Nouvelle clé
         "dl_filename": "kw_filtrés.csv",
         "n_lines": "Traitement terminé ({:d} lignes)",
         "info_upload": "Veuillez charger au moins un fichier SEMrush.",
@@ -37,13 +36,14 @@ TEXTS = {
         "no_data": "Aucune donnée exploitable. Vérifiez vos fichiers.",
         "total": "TOTAL",
         "true": "VRAI",
-        "false": "FAUX"
+        "false": "FAUX",
+        "company": "Compagnie"  # Clé pour la colonne mise à jour
     },
     "EN": {
         "app_title": "🔍 SEO Pre-processing: Branded & Non-branded 🇺🇸",
         "app_desc": "Upload one or more SEMrush files and your brands to separate branded and non-branded keywords.",
         "upload_label": "SEMrush files (.csv, .xlsx)",
-        "min_volume": "Minimum search volume",
+        "min_volume": "Minimum volume",
         "max_kd": "Max KD (%)",
         "brands_list": "📝 Brand keywords",
         "manual_brands": "Enter specifics words/brands (one per line)",
@@ -55,9 +55,8 @@ TEXTS = {
         "kw_nonbrand": "KW non-branded",
         "hard_kd": "↗️ Hard KD",
         "low_volume": "↙️ Low Volume",
-        "pct_brand": "% branded",
-        "pct_nonbrand": "% non-branded",
         "dl_label": "Download CSV results",
+        "synth_dl_label": "Download CSV summary",  # Nouvelle clé
         "dl_filename": "filtered_kw.csv",
         "n_lines": "Done ({:d} rows processed)",
         "info_upload": "Please upload at least one SEMrush file.",
@@ -66,11 +65,12 @@ TEXTS = {
         "no_data": "No usable data. Check your files.",
         "total": "TOTAL",
         "true": "TRUE",
-        "false": "FALSE"
+        "false": "FALSE",
+        "company": "Company"  # Clé pour la colonne mise à jour
     }
 }
 
-# 💬 Fonctions métiers
+# Fonction pour vérifier si un mot-clé est branded
 def is_branded_kw(keyword, brand_set):
     lower_keyword = str(keyword).lower()
     keyword_words = re.findall(r"\b[\w'-]+\b", lower_keyword)
@@ -86,29 +86,29 @@ def is_branded_kw(keyword, brand_set):
                 return True
     return False
 
-# 💬 Config Streamlit
+# Configuration Streamlit
 st.set_page_config(layout="wide")
 
-# 💬 Barres latérales et langue
+# Langue et barre latérale
 col1, colspace, col2 = st.columns([6, 2, 1])
 with col2:
     select_lang = st.selectbox("", LANG_OPTIONS, label_visibility='collapsed')
 langue = LANG_CODES[select_lang]
 
-# 💬 Titre et description
-st.markdown(f"<h3 style='font-size: max(1.5vw, 36px);'>{TEXTS[langue]['app_title']}</h3>", unsafe_allow_html=True)
+# Titre et description
+st.markdown(f"<h3 style='margin-top: 0;'>{TEXTS[langue]['app_title']}</h3>", unsafe_allow_html=True)
 st.markdown(TEXTS[langue]["app_desc"])
 
-# 🟢 Sidebar Pro IU
+# Sidebar
 with st.sidebar:
-    st.header("🖇️Imports SEMrush")
+    st.header("🖇️ Imports SEMrush")
     uploaded_files = st.file_uploader(TEXTS[langue]["upload_label"], accept_multiple_files=True)
     st.markdown("---")
     col1, col2 = st.columns(2)
-    
+
     with col1:
         min_volume = st.number_input(TEXTS[langue]["min_volume"], min_value=0, value=100, step=50)
-    
+
     with col2:
         max_kd = st.number_input(TEXTS[langue]["max_kd"], min_value=0, max_value=100, value=50, step=10)
 
@@ -118,17 +118,13 @@ with st.sidebar:
     brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"])
     run_btn = st.button(TEXTS[langue]["run"])
 
-# 🟡 Définition des couleurs par défaut pour chaque onglet
+# Génération dynamique des couleurs
 default_colors = {
     "synthese": ["#4CAF50", "#FF9800", "#2196F3", "#F44336"],
 }
 
-# Génération dynamique des couleurs pour chaque onglet
-for idx in range(1, 16):
-    default_colors[f"onglet{idx}"] = [px.colors.qualitative.Plotly[idx % len(px.colors.qualitative.Plotly)]]
-
+# Processus d'importation
 if uploaded_files and run_btn:
-    # 💬 Création du set branded à partir du textarea et des fichiers
     brand_set = set([b.strip() for b in brand_input.splitlines() if b.strip()]) if brand_input else set()
     if brand_file:
         if brand_file.type == "text/plain":
@@ -159,10 +155,11 @@ if uploaded_files and run_btn:
             df['Search Volume'] = pd.to_numeric(df['Search Volume'], errors='coerce').fillna(0)
             df['Keyword Difficulty'] = pd.to_numeric(df['Keyword Difficulty'], errors='coerce').fillna(0)
 
-            # Ajoute nom du fichier pour le détail
-            df['Fichier'] = upl.name
+            # Nom du fichier (sans extension et avec première lettre en majuscule)
+            file_name = upl.name.rsplit('.', 1)[0].title()  # Enlève l'extension et met en majuscule
+            df['Fichier'] = file_name  # Utiliser le nom sans extension
 
-            # 💬 Ajout colonne tagged branded
+            # Ajout de la colonne de mots-clés branded
             branded_col = [
                 TEXTS[langue]["true"] if is_branded_kw(kw, brand_set) else TEXTS[langue]["false"]
                 for kw in df['Keyword']
@@ -170,7 +167,20 @@ if uploaded_files and run_btn:
             idx_kw = df.columns.get_loc('Keyword')
             df.insert(idx_kw + 1, 'branded', branded_col)
 
-            # 💬 Ajout colonne catégorie LV/HardKD
+            # Ajout de la colonne des raisons
+            reason_col = []
+            for _, row in df.iterrows():
+                if row['branded'] == TEXTS[langue]["true"]:
+                    reason_col.append(row['Keyword'])  # Mot-clé correspondant
+                elif row['Keyword Difficulty'] > max_kd:
+                    reason_col.append("Hard KD")
+                elif row['Search Volume'] < min_volume:
+                    reason_col.append("Low Volume")
+                else:
+                    reason_col.append("non_Branded")
+            df.insert(idx_kw + 2, 'reason', reason_col)
+
+            # Ajout de la colonne de catégorie LV/HardKD
             category_col = []
             for _, row in df.iterrows():
                 if row['Search Volume'] < min_volume:
@@ -179,7 +189,7 @@ if uploaded_files and run_btn:
                     category_col.append("Hard KD")
                 else:
                     category_col.append("")
-            df.insert(idx_kw + 2, 'Category', category_col)
+            df.insert(idx_kw + 3, 'Category', category_col)
 
             mask_category_empty = (df['Category'] == "")
             mask_branded = df['branded'] == TEXTS[langue]["true"]
@@ -191,18 +201,13 @@ if uploaded_files and run_btn:
             n_hardkd = (df['Category'] == "Hard KD").sum()
             n_lowvol = (df['Category'] == "Low Volume").sum()
 
-            brand_pct = f"{100 * n_kwbrand / n_total:.1f}%" if n_total > 0 else "0%"
-            nonbrand_pct = f"{100 * n_kwnonbrand / n_total:.1f}%" if n_total > 0 else "0%"
-
             synthese.append({
-                "Fichier": upl.name,
+                "Fichier": file_name,  # Utiliser le nom sans extension
                 TEXTS[langue]["kw_total"]: n_total,
                 TEXTS[langue]["kw_brand"]: n_kwbrand,
                 TEXTS[langue]["kw_nonbrand"]: n_kwnonbrand,
                 TEXTS[langue]["hard_kd"]: n_hardkd,
                 TEXTS[langue]["low_volume"]: n_lowvol,
-                TEXTS[langue]["pct_brand"]: brand_pct,
-                TEXTS[langue]["pct_nonbrand"]: nonbrand_pct,
             })
 
             all_processed.append(df)
@@ -216,7 +221,7 @@ if uploaded_files and run_btn:
         fusion = pd.concat(all_processed, ignore_index=True)
         synthese_df = pd.DataFrame(synthese)
 
-        # 💬 Ajout ligne total
+        # Ajout de la ligne totale sans pourcentages
         if not synthese_df.empty:
             total_kw = synthese_df[TEXTS[langue]["kw_total"]].sum()
             total_branded = synthese_df[TEXTS[langue]["kw_brand"]].sum()
@@ -230,30 +235,27 @@ if uploaded_files and run_btn:
                 TEXTS[langue]["kw_nonbrand"]: total_nonbranded,
                 TEXTS[langue]["hard_kd"]: total_hardkd,
                 TEXTS[langue]["low_volume"]: total_lowvol,
-                TEXTS[langue]["pct_brand"]: f"{100 * total_branded / total_kw:.1f}%" if total_kw > 0 else "0%",
-                TEXTS[langue]["pct_nonbrand"]: f"{100 * total_nonbranded / total_kw:.1f}%" if total_kw > 0 else "0%",
             }
             synthese_df = pd.concat([synthese_df, pd.DataFrame([total_row])], ignore_index=True)
 
+        # Renommer la colonne "Fichier"
+        synthese_df.rename(columns={"Fichier": TEXTS[langue]["company"]}, inplace=True)
+
         st.success(TEXTS[langue]["n_lines"].format(len(fusion)))
 
-        # 🟢 ----- AFFICHAGE par Onglets --------
+        # Affichage par Onglets
         tabs = st.tabs(["📊 Synthèse"] + [fname.split('.')[0] for fname in fusion['Fichier'].unique()] + ["🔍 Données brutes"])
 
         # Onglet Synthèse Globale
         with tabs[0]:
             st.subheader("🔎 " + TEXTS[langue]["synth_title"])
-            st.dataframe(
-                synthese_df,
-                use_container_width=True,
-                height=min(600, 60 + 30 * len(synthese_df))
-            )
+            st.dataframe(synthese_df, use_container_width=True, height=min(600, 60 + 30 * len(synthese_df)))
 
             # Bouton de téléchargement pour la synthèse
             @st.fragment
             def download_synth_data():
                 st.download_button(
-                    label=TEXTS[langue]["dl_label"],
+                    label=TEXTS[langue]["synth_dl_label"],  # Modifié ici pour afficher "synthèse"
                     icon="📥",
                     data=synthese_df.to_csv(index=False),
                     file_name="synthese.csv",
@@ -264,11 +266,11 @@ if uploaded_files and run_btn:
 
             download_synth_data()
 
-            # Pie chart et bar chart
-            synth_global_row = synthese_df[synthese_df["Fichier"] == TEXTS[langue]["total"]]
+            # Graphiques
+            synth_global_row = synthese_df[synthese_df[TEXTS[langue]["company"]] == TEXTS[langue]["total"]]
             if not synth_global_row.empty:
                 colpie, colbar = st.columns(2)
-                # -- Pie
+                # Pie chart
                 with colpie:
                     values = [
                         int(synth_global_row[TEXTS[langue]["kw_nonbrand"]].values[0]),
@@ -292,7 +294,8 @@ if uploaded_files and run_btn:
                     )
                     fig1.update_traces(textinfo='percent+label')
                     st.plotly_chart(fig1, use_container_width=True)
-                # -- Bar
+
+                # Bar chart
                 with colbar:
                     fig2 = px.bar(
                         x=labels,
@@ -303,7 +306,7 @@ if uploaded_files and run_btn:
                     )
                     st.plotly_chart(fig2, use_container_width=True)
 
-        # --- Onglet par fichier avec graphiques ---
+        # Onglet par fichier avec graphiques
         for idx in range(1, len(tabs) - 1):
             fname = fusion['Fichier'].unique()[idx - 1]
             with tabs[idx]:
@@ -315,32 +318,37 @@ if uploaded_files and run_btn:
                 n_hardkd = (file_data['Category'] == "Hard KD").sum()
                 n_lowvol = (file_data['Category'] == "Low Volume").sum()
 
-                brand_pct = f"{100 * n_kwbrand / n_total:.1f}%" if n_total > 0 else "0%"
-                nonbrand_pct = f"{100 * n_kwnonbrand / n_total:.1f}%" if n_total > 0 else "0%"
+                # Graphiques
+                colpie, colbar = st.columns(2)
+                with colpie:
+                    values = [n_kwnonbrand, n_kwbrand, n_hardkd, n_lowvol]
+                    labels = [TEXTS[langue]["kw_nonbrand"], TEXTS[langue]["kw_brand"], TEXTS[langue]["hard_kd"], TEXTS[langue]["low_volume"]]
+                    colors = default_colors["synthese"]
+                    fig3 = px.pie(
+                        names=labels,
+                        values=values,
+                        color=labels,
+                        color_discrete_sequence=colors,
+                        title=f"Répartition globale des mots-clés pour {fname}"
+                    )
+                    fig3.update_traces(textinfo='percent+label')
+                    st.plotly_chart(fig3, use_container_width=True)
 
-                colors = default_colors[f"onglet{idx}"]
-
-                fig3 = px.pie(
-                    names=[TEXTS[langue]["kw_brand"], TEXTS[langue]["kw_nonbrand"]],
-                    values=[n_kwbrand, n_kwnonbrand],
-                    color_discrete_sequence=colors,
-                    title=f"Distribution des mots-clés pour {fname}"
-                )
-                st.plotly_chart(fig3, use_container_width=True)
-
-                fig4 = px.bar(
-                    x=["Hard KD", "Low Volume"],
-                    y=[n_hardkd, n_lowvol],
-                    color_discrete_sequence=colors,
-                    title=f"Répartition des catégories pour {fname}"
-                )
-                st.plotly_chart(fig4, use_container_width=True)
+                with colbar:
+                    fig4 = px.bar(
+                        x=labels,
+                        y=values,
+                        color=labels,
+                        color_discrete_sequence=colors,
+                        title=f"Distribution globale pour {fname}"
+                    )
+                    st.plotly_chart(fig4, use_container_width=True)
 
                 # Affichage des 20 premières lignes
                 st.write("### Aperçu des 20 premières lignes")
                 st.dataframe(file_data.head(20), use_container_width=True)
 
-                # Bouton de téléchargement pour chaque fichier
+                # Bouton de téléchargement
                 @st.fragment
                 def download_file_data():
                     st.download_button(
@@ -355,13 +363,13 @@ if uploaded_files and run_btn:
 
                 download_file_data()
 
-        # --- Onglet données brutes ---
+        # Onglet données brutes
         with tabs[-1]:
             st.subheader("🔍 Données brutes")
             st.write("Aperçu des données traitées :")
             st.dataframe(fusion, use_container_width=True)
 
-            # 🔄 Fonction de téléchargement avec st.fragment
+            # Fonction de téléchargement
             @st.fragment
             def download_data():
                 st.download_button(
