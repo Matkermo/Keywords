@@ -199,7 +199,7 @@ if uploaded_files and run_btn:
             n_kwbrand = ((mask_category_empty) & (mask_branded)).sum()
             n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
             n_hardkd = (df['Category'] == "Hard KD").sum()
-            n_lowvol = (df['Category'] == "Low Volume").sum();
+            n_lowvol = (df['Category'] == "Low Volume").sum()
 
             synthese.append({
                 "Fichier": file_name,  # Utiliser le nom sans extension
@@ -309,16 +309,44 @@ if uploaded_files and run_btn:
                     st.plotly_chart(fig2, use_container_width=True)
 
         # Onglet par fichier avec graphiques
+        #for idx in range(1, len(tabs) - 1):
+         #   fname = fusion['Fichier'].unique()[idx - 1]
+          #  with tabs[idx]:
+             #   st.subheader(f"Analyse pour {fname}")
+             #   file_data = fusion[fusion["Fichier"] == fname]
+              #  n_total = len(file_data)
+               # n_hardkd = (file_data['Category'] == "Hard KD").sum()
+                #n_lowvol = (file_data['Category'] == "Low Volume").sum()
+                #n_kwbrand = file_data[(file_data['Category'].isna()) & (file_data['branded'] == True)].shape[0]
+                #n_kwnonbrand = file_data[(file_data['Category'].isna()) & (file_data['branded'] == False)].shape[0]
+
+        # Onglet par fichier avec graphiques
         for idx in range(1, len(tabs) - 1):
             fname = fusion['Fichier'].unique()[idx - 1]
             with tabs[idx]:
                 st.subheader(f"Analyse pour {fname}")
                 file_data = fusion[fusion["Fichier"] == fname]
                 n_total = len(file_data)
-                n_kwbrand = (file_data['branded'] == TEXTS[langue]["true"]).sum()
-                n_kwnonbrand = (file_data['branded'] == TEXTS[langue]["false"]).sum()
-                n_hardkd = (file_data['Category'] == "Hard KD").sum()
-                n_lowvol = (file_data['Category'] == "Low Volume").sum()
+
+                # Créer les masques
+                mask_category_empty = (df['Category'] == "")
+                mask_branded = df['branded'] == TEXTS[langue]["true"]
+                mask_nonbranded = df['branded'] == TEXTS[langue]["false"]
+
+                # Calculs
+                n_kwbrand = ((mask_category_empty) & (mask_branded)).sum()
+                n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
+                n_hardkd = (df['Category'] == "Hard KD").sum()
+                n_lowvol = (df['Category'] == "Low Volume").sum()
+
+                # # Affichage des résultats
+                # st.write(f"Total : {n_total}")
+                # st.write(f"Mots-clés branded : {n_kwbrand}")
+                # st.write(f"Mots-clés non-branded : {n_kwnonbrand}")
+                # st.write(f"Hard KD : {n_hardkd}")
+                # st.write(f"Low Volume : {n_lowvol}")
+
+        # Ici ajouter le code pour générer les graphiques
 
                 # Graphiques
                 colpie, colbar = st.columns(2)
@@ -334,6 +362,14 @@ if uploaded_files and run_btn:
                         title=f"Répartition globale des mots-clés pour {fname}"
                     )
                     fig3.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
+
+                    # Ajustement de la taille et des marges
+                    fig3.update_layout(
+                        height=550,   # Ajuste la hauteur
+                        width=825,    # Ajuste la largeur
+                        margin=dict(t=50, b=20, l=20, r=20)  # Marges autour du graphique
+                    )
+                    
                     st.plotly_chart(fig3, use_container_width=True)
 
                 with colbar:
@@ -351,20 +387,6 @@ if uploaded_files and run_btn:
                 st.write("### Aperçu des 20 premières lignes")
                 st.dataframe(file_data.head(20), use_container_width=True)
 
-                # Bouton de téléchargement
-                @st.fragment
-                def download_file_data():
-                    st.download_button(
-                        label=TEXTS[langue]["dl_label"],
-                        icon="📥",
-                        data=file_data.to_csv(index=False),
-                        file_name=f"{fname.split('.')[0]}_data.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                        disabled=file_data.empty
-                    )
-
-                download_file_data()
 
         # Onglet données brutes
         with tabs[-1]:
@@ -373,7 +395,6 @@ if uploaded_files and run_btn:
             st.dataframe(fusion, use_container_width=True)
 
             # Fonction de téléchargement
-            @st.fragment
             def download_data():
                 st.download_button(
                     label=TEXTS[langue]["dl_label"],
@@ -387,7 +408,6 @@ if uploaded_files and run_btn:
 
             download_data()
 
-    else:
-        st.warning(TEXTS[langue]["no_data"])
-else:
-    st.info(TEXTS[langue]["info_upload"])
+            # Avertissement si les données sont vides
+            if fusion.empty:
+                st.warning(TEXTS[langue]["no_data"])
