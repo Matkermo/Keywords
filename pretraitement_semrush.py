@@ -4,7 +4,7 @@ from io import BytesIO
 import plotly.express as px
 import re
 
-# 💬 Paramètres langues et textes
+# 💬 Paramètres langues et textes v8
 country_flags = {"FR": "🇫🇷", "EN": "🇺🇸"}
 LANG_OPTIONS = [f"FR {country_flags['FR']}", f"EN {country_flags['EN']}"]
 LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "EN"}
@@ -313,22 +313,43 @@ if uploaded_files and run_btn:
 
         # Onglet par fichier avec graphiques
         for idx in range(1, len(tabs) - 1):
-            fname = fusion['Fichier'].unique()[idx - 1]
+            fname = fusion['Fichier'].unique()[idx - 1]  # Récupère le nom du fichier actuel
             with tabs[idx]:
                 st.subheader(f"Analyse pour {fname}")
+                
+                # Filtrer les données du fichier actuel
                 file_data = fusion[fusion["Fichier"] == fname]
                 n_total = len(file_data)
 
                 # Créer les masques
-                mask_category_empty = (df['Category'] == "")
-                mask_branded = df['branded'] == TEXTS[langue]["true"]
-                mask_nonbranded = df['branded'] == TEXTS[langue]["false"]
+                mask_category_empty = (file_data['Category'] == "")
+                mask_branded = file_data['branded'] == TEXTS[langue]["true"]
+                mask_nonbranded = file_data['branded'] == TEXTS[langue]["false"]
 
                 # Calculs
                 n_kwbrand = ((mask_category_empty) & (mask_branded)).sum()
                 n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
-                n_hardkd = (df['Category'] == "Hard KD").sum()
-                n_lowvol = (df['Category'] == "Low Volume").sum()
+                n_hardkd = (file_data['Category'] == "Hard KD").sum()
+                n_lowvol = (file_data['Category'] == "Low Volume").sum()
+
+                # Créer un dictionnaire des résultats
+                results = {
+                    "Compagnie": fname,
+                    "Total": n_total,
+                    "Brand": n_kwbrand,
+                    "Non-brand": n_kwnonbrand,
+                    "Hard KD": n_hardkd,
+                    "Low Volume": n_lowvol,
+                }
+
+                # Ajouter à la synthèse pour affichage ultérieur
+                synthese.append(results)
+
+                # Créer un DataFrame pour l'affichage
+                df_synthese = pd.DataFrame([results])  # Utilisation de [results] pour créer une seule ligne
+
+                # Affichage des résultats dans un tableau
+                st.dataframe(df_synthese, use_container_width=True)  # Affichage de manière adaptée
 
                 # Graphiques
                 colpie, colbar = st.columns(2)
@@ -363,6 +384,13 @@ if uploaded_files and run_btn:
                         title=f"Distribution globale pour {fname}"
                     )
                     fig4.update_traces(texttemplate='%{y}', textposition='outside')  # Affiche uniquement les valeurs
+                                        # Ajustement de la taille et des marges
+                    fig4.update_layout(
+                        height=550,   # Ajuste la hauteur
+                        width=500,    # Ajuste la largeur
+                        margin=dict(t=50, b=20, l=20, r=20)  # Marges autour du graphique
+                    )
+
                     st.plotly_chart(fig4, use_container_width=True)
 
                 # Affichage des 20 premières lignes
@@ -373,7 +401,7 @@ if uploaded_files and run_btn:
         with tabs[-1]:
             st.subheader("🔍 Données brutes")
             st.write("Aperçu des données traitées :")
-            st.dataframe(fusion, use_container_width=True)
+            st.dataframe(fusion.head(20), use_container_width=True)
 
             # Fonction de téléchargement
             def download_data():
