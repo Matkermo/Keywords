@@ -171,7 +171,10 @@ if uploaded_files and run_btn:
             reason_col = []
             for _, row in df.iterrows():
                 if row['branded'] == TEXTS[langue]["true"]:
-                    reason_col.append(row['Keyword'])  # Mot-clé correspondant
+                    # Trouver le mot de marque correspondant
+                    branded_word = next((brand for brand in brand_set if brand.lower() in row['Keyword'].lower()), None)
+                    reasoning = branded_word if branded_word else "Unknown Brand"
+                    reason_col.append(reasoning)
                 elif row['Keyword Difficulty'] > max_kd:
                     reason_col.append("Hard KD")
                 elif row['Search Volume'] < min_volume:
@@ -202,7 +205,7 @@ if uploaded_files and run_btn:
             n_lowvol = (df['Category'] == "Low Volume").sum()
 
             synthese.append({
-                "Fichier": file_name,  # Utiliser le nom sans extension
+                "Fichier": file_name,
                 TEXTS[langue]["kw_total"]: n_total,
                 TEXTS[langue]["kw_brand"]: n_kwbrand,
                 TEXTS[langue]["kw_nonbrand"]: n_kwnonbrand,
@@ -271,7 +274,7 @@ if uploaded_files and run_btn:
             if not synth_global_row.empty:
                 colpie, colbar = st.columns(2)
 
-                # Pie chart
+                # Graphique en camembert
                 with colpie:
                     values = [
                         int(synth_global_row[TEXTS[langue]["kw_nonbrand"]].values[0]),
@@ -296,7 +299,7 @@ if uploaded_files and run_btn:
                     fig1.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
                     st.plotly_chart(fig1, use_container_width=True)
 
-                # Bar chart
+                # Graphique en barres
                 with colbar:
                     fig2 = px.bar(
                         x=labels,
@@ -307,18 +310,6 @@ if uploaded_files and run_btn:
                     )
                     fig2.update_traces(texttemplate='%{y}', textposition='outside')  # Affiche uniquement les valeurs
                     st.plotly_chart(fig2, use_container_width=True)
-
-        # Onglet par fichier avec graphiques
-        #for idx in range(1, len(tabs) - 1):
-         #   fname = fusion['Fichier'].unique()[idx - 1]
-          #  with tabs[idx]:
-             #   st.subheader(f"Analyse pour {fname}")
-             #   file_data = fusion[fusion["Fichier"] == fname]
-              #  n_total = len(file_data)
-               # n_hardkd = (file_data['Category'] == "Hard KD").sum()
-                #n_lowvol = (file_data['Category'] == "Low Volume").sum()
-                #n_kwbrand = file_data[(file_data['Category'].isna()) & (file_data['branded'] == True)].shape[0]
-                #n_kwnonbrand = file_data[(file_data['Category'].isna()) & (file_data['branded'] == False)].shape[0]
 
         # Onglet par fichier avec graphiques
         for idx in range(1, len(tabs) - 1):
@@ -338,15 +329,6 @@ if uploaded_files and run_btn:
                 n_kwnonbrand = ((mask_category_empty) & (mask_nonbranded)).sum()
                 n_hardkd = (df['Category'] == "Hard KD").sum()
                 n_lowvol = (df['Category'] == "Low Volume").sum()
-
-                # # Affichage des résultats
-                # st.write(f"Total : {n_total}")
-                # st.write(f"Mots-clés branded : {n_kwbrand}")
-                # st.write(f"Mots-clés non-branded : {n_kwnonbrand}")
-                # st.write(f"Hard KD : {n_hardkd}")
-                # st.write(f"Low Volume : {n_lowvol}")
-
-        # Ici ajouter le code pour générer les graphiques
 
                 # Graphiques
                 colpie, colbar = st.columns(2)
@@ -386,7 +368,6 @@ if uploaded_files and run_btn:
                 # Affichage des 20 premières lignes
                 st.write("### Aperçu des 20 premières lignes")
                 st.dataframe(file_data.head(20), use_container_width=True)
-
 
         # Onglet données brutes
         with tabs[-1]:
