@@ -37,7 +37,9 @@ TEXTS = {
         "total": "TOTAL",
         "true": "VRAI",
         "false": "FAUX",
-        "company": "Compagnie"
+        "company": "Compagnie",
+        "raw_data": "🔍 Données brutes",
+        "branded_analysis": "Analyse Branded"
     },
     "EN": {
         "app_title": "🔍 SEO Pre-processing: Branded & Non-branded 🇺🇸",
@@ -66,7 +68,9 @@ TEXTS = {
         "total": "TOTAL",
         "true": "TRUE",
         "false": "FALSE",
-        "company": "Company"
+        "company": "Company",
+        "raw_data": "🔍 Raw Data",
+        "branded_analysis": "Branded Analysis"
     }
 }
 
@@ -247,7 +251,11 @@ if uploaded_files and run_btn:
         st.success(TEXTS[langue]["n_lines"].format(len(fusion)))
 
         # Affichage par Onglets
-        tabs = st.tabs(["📊 Synthèse"] + [fname.split('.')[0] for fname in fusion['Fichier'].unique()] + ["🔍 Données brutes"])
+        tabs = st.tabs(
+            ["📊 " + TEXTS[langue]["synth_title"]] + 
+            [fname.split('.')[0] for fname in fusion['Fichier'].unique()] + 
+            [TEXTS[langue]["branded_analysis"], TEXTS[langue]["raw_data"]]
+        )
 
         # Onglet Synthèse Globale
         with tabs[0]:
@@ -312,7 +320,7 @@ if uploaded_files and run_btn:
                     st.plotly_chart(fig2, use_container_width=True)
 
         # Onglet par fichier avec graphiques
-        for idx in range(1, len(tabs) - 1):
+        for idx in range(1, len(tabs) - 2):
             fname = fusion['Fichier'].unique()[idx - 1]  # Récupère le nom du fichier actuel
             with tabs[idx]:
                 st.subheader(f"Analyse pour {fname}")
@@ -397,9 +405,52 @@ if uploaded_files and run_btn:
                 st.write("### Aperçu des 20 premières lignes")
                 st.dataframe(file_data.head(20), use_container_width=True)
 
+        # Onglet Analyse Branded
+        with tabs[-2]:
+            st.write(f"### {TEXTS[langue]['branded_analysis']} sans applications de seuils KD & Volume search" if langue == "FR" else f"### {TEXTS[langue]['branded_analysis']} without applying KD & Volume thresholds")
+
+            summary_data = fusion.groupby('Fichier').agg(
+                KW_branded=('branded', lambda x: (x == TEXTS[langue]["true"]).sum()),
+                KW_nonbranded=('branded', lambda x: (x == TEXTS[langue]["false"]).sum())
+            ).reset_index()
+
+            # Calculer les totaux
+            total_branded = summary_data['KW_branded'].sum()
+            total_nonbranded = summary_data['KW_nonbranded'].sum()
+            
+            # Créer une ligne de total
+            total_row = pd.DataFrame({
+                'Fichier': ['TOTAL'],
+                'KW_branded': [total_branded],
+                'KW_nonbranded': [total_nonbranded]
+            })
+
+            # Ajouter cette ligne au DataFrame
+            df_branded_analysis = pd.concat([summary_data, total_row], ignore_index=True).rename(columns={'Fichier': TEXTS[langue]["company"]})
+
+            # Affichage dans un tableau
+            st.dataframe(df_branded_analysis, use_container_width=True)
+
+            # Graphique en camembert
+            pie_values = [total_nonbranded, total_branded]
+            pie_labels = ['Non-Branded', 'Branded']
+            
+            fig_pie = px.pie(
+                names=pie_labels,
+                values=pie_values,
+                color=pie_labels,
+                color_discrete_sequence=["#FF9800", "#4CAF50"],  # Couleurs pour Non-Branded et Branded
+                title="Répartition des Mots-Clés Branded et Non-Branded"
+            )
+            
+            # Ajustements pour afficher les pourcentages à l'intérieur des parts
+            fig_pie.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+
         # Onglet données brutes
         with tabs[-1]:
-            st.subheader("🔍 Données brutes")
+            st.subheader(TEXTS[langue]["raw_data"])
             st.write("Aperçu des données traitées :")
             st.dataframe(fusion.head(20), use_container_width=True)
 
