@@ -4,10 +4,10 @@ from io import BytesIO
 import plotly.express as px
 import re
 
-# 💬 Paramètres langues et textes v8
+# 💬 Paramètres langues et textes v10
 country_flags = {"FR": "🇫🇷", "EN": "🇺🇸"}
-LANG_OPTIONS = [f"FR {country_flags['FR']}", f"EN {country_flags['EN']}"]
-LANG_CODES = {f"FR {country_flags['FR']}": "FR", f"EN {country_flags['EN']}": "EN"}
+LANG_OPTIONS = ['FR 🇫🇷', 'EN 🇺🇸']
+LANG_CODES = {'FR 🇫🇷': 'FR', 'EN 🇺🇸': 'EN'}
 
 TEXTS = {
     "FR": {
