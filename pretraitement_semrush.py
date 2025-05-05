@@ -452,7 +452,7 @@ if uploaded_files and run_btn:
         with tabs[-1]:
             st.subheader(TEXTS[langue]["raw_data"])
             st.write("Aperçu des données traitées :")
-            st.dataframe(fusion.head(20), use_container_width=True)
+            st.dataframe(fusion.head(10000), use_container_width=True)
 
             # Fonction de téléchargement
             def download_data():
