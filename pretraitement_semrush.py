@@ -58,6 +58,7 @@ TEXTS = {
         "hard_kd": "↗️ Hard KD",
         "low_volume": "↙️ Low Volume",
         "dl_label": "Download CSV results",
+        "dl_model": "Download branded keyword model",
         "synth_dl_label": "Download CSV summary",
         "dl_filename": "filtered_kw.csv",
         "n_lines": "Done ({:d} rows processed)",
@@ -73,6 +74,56 @@ TEXTS = {
         "branded_analysis": "Branded Analysis"
     }
 }
+
+# Ajouter les premiers mots-clés
+initial_brands = [
+    "ut", "abudhabi", "francia", "hawaii", "korea", "maroc", "MN", "MS", "NC", "ND",
+    "NH", "NJ", "NM", "okc", "SD", "slb", "thailande", "UK", "VA", "VT", "WA", "aberdeen",
+    "abidjan", "abrdn", "abu dhabi", "Africa", "africain", "afrique", "AK", "Alabama",
+    "Alaska", "Albany", "algeria", "algerie", "algérie", "alibaba", "Allemagne", "amen",
+    "america", "american", "amerique latine", "anchorage", "anderson", "angeles", "angola",
+    "Annapolis", "antonio", "appleton", "aquitaine", "arabes", "arabia", "arabian", "argentina",
+    "Arizona", "Arkansas", "asia", "Atlanta", "Augusta", "Austin", "australia", "australie",
+    "AZ", "azerbaijan", "bahrain", "bakersfield", "baku", "bangkok", "barcelone", "baskerville",
+    "Baton Rouge", "Belgique", "belgium", "bergen", "Bismarck", "bismart", "bogota", "Boise",
+    "bordeaux", "Boston", "brazil", "bresil", "brésil", "brownsville", "CA", "calgary",
+    "California", "californie", "cameroun", "canada", "canadian", "cardiff", "career",
+    "Carolina", "Carson City", "carte du monde", "Charleston", "Cheyenne", "chicago", "chili",
+    "chine", "city", "clarksville", "CO", "cologne", "colombia", "colombie", "colombus",
+    "Colorado", "Columbie", "Columbus", "Concord", "Connecticut", "continent", "corée du sud",
+    "CT", "cuba", "Dakota", "dallas", "danemark", "Delaware", "denmark", "Denver", "Des Moines",
+    "dickinson", "d'ivoire", "Dover", "dubai", "dubois", "dutch", "eastern", "eclispe", 
+    "edmonton", "egypt", "egypte", "eiffel", "eldridge", "emirates", "emirats", "england",
+    "Espagne", "espasgne", "Florida", "forth worth", "Frankfort", "gabon", "gayana", "Georgia",
+    "german", "germany", "ghana", "guyana", "halliburton", "halliburton", "Hampshire", "Harrisburg",
+    "Hartford", "Hawaii", "Helena", "hk", "holland", "hong", "hong kong", "Honolulu", "houma",
+    "houston", "huston","iberia", "Idaho", "illinois", "inde", "india", "Indiana", "Indianapolis",
+    "indienne", "indonesia", "indonésia", "indonesie", "indonésie", "Iowa", "iran", "irelande",
+    "islande", "istanbul", "italia", "italian", "Italie", "ivoire", "Jackson", "jacksonville", 
+    "japan", "japon", "Jefferson City", "Jersey", "Juneau", "Kansas", "katy", "Kentucky", "kingdom", 
+    "kinshasa", "korea", "kristiansand", "KS", "kuwait", "KY", "lafayette", "lagos", "Lansing", 
+    "liban", "l'ile maurice", "Lincoln", "lisbonne", "Little Rock", "london", "londres", "Louisiana", 
+    "luxembour", "lyon", "lysaker", "madagascar", "Madison", "madrid", "Maine", "malaisie", 
+    "mallard", "manchester", "mangascar", "marocco", "maroco", "marseille", "Maryland", 
+    "Massachusetts", "maurice", "MD", "Mexico", "Mexique", "Michigan", "midland", "minesota", 
+    "minneapolis", "Minnesota", "Mississippi", "Missouri", "Montana", "Montgomery", "Montpelier", 
+    "montreal", "montréal", "Nashville", "ndt", "Nebraska", "nederland", "Nevada", "new mexico", 
+    "new york", "New zeland", "nigeria", "nigéria", "norvege", "norvège", "norway", 
+    "nouvelle zelande", "nouvelle zélande", "NOV", "NV", "NY", "nyc", "nz", "odessa", "Ohio", 
+    "okc", "Oklahoma", "olso", "Olympia", "oman", "Oregon", "oslo", "pays bas", "pays bs", 
+    "pays nordiques", "Pennsylvania", "phoenix", "Portugal", "Providence", "qatar", "Raleigh", 
+    "recruite", "recruiters", "recruitment", "republique", "Rhode Island", "Richmond", 
+    "rocheuses", "romania", "Sacramento", "Saint Paul", "salary", "Salem", "salinas", 
+    "Salt Lake City", "san francisco", "Santa Fe", "saudi", "scandinaves", "scotland", "seattle", 
+    "seoul", "serbi", "serbie", "shreveport", "singapore", "spain", "Springfield", "stonehouse", 
+    "suede", "suède", "suisse", "sydney", "syracuse", "tabasco", "Tallahassee", "techèque", 
+    "Tennessee", "Texas", "thailand", "thaïlande", "thaillande", "TN", "Topeka", "toulouse", 
+    "Trenton", "trinidad", "tucson", "tulsa", "tunisie", "turkey", "TX", "uk", "united kingdom", 
+    "united state", "united states", "us", "us", "usa", "Utah", "vancouver", "veitman", 
+    "ventana", "veracruz", "Vermont", "versailles", "vienna", "vietnam", "virginia", 
+    "w y", "w.y.", "wa", "waco", "Washington", "West Virginia", "wilcrest", "williston", 
+    "Wisconsin", "WV", "WY", "Wyoming", "York", "zagreb"
+]
 
 # Fonction pour vérifier si un mot-clé est branded
 def is_branded_kw(keyword, brand_set):
@@ -121,6 +172,28 @@ with st.sidebar:
     brand_input = st.text_area(TEXTS[langue]["manual_brands"], height=100)
     brand_file = st.file_uploader(TEXTS[langue]["brand_file"], type=["txt", "csv", "xlsx"])
     run_btn = st.button(TEXTS[langue]["run"])
+
+    # Fonction pour créer le modèle de fichier
+    def create_model_file():
+        df = pd.DataFrame({
+            "Branded Keyword": initial_brands  # Ajout des mots-clés initiaux
+        })
+        return df
+
+    # Création du modèle de fichier
+    model_df = create_model_file()
+    buffer = BytesIO()
+    model_df.to_excel(buffer, index=False)
+    buffer.seek(0)
+
+    st.sidebar.subheader(TEXTS[langue]["dl_model"] if langue == "EN" else "Télécharger le Modèle de Branded Keywords")
+    st.sidebar.download_button(
+        label=TEXTS[langue]["dl_label"] if langue == "FR" else "Download Model",
+        data=buffer,
+        file_name="branded_keywords_model.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download_model"
+    )
 
 # Génération dynamique des couleurs
 default_colors = {
@@ -252,8 +325,8 @@ if uploaded_files and run_btn:
 
         # Affichage par Onglets
         tabs = st.tabs(
-            ["📊 " + TEXTS[langue]["synth_title"]] + 
-            [fname.split('.')[0] for fname in fusion['Fichier'].unique()] + 
+            ["📊 " + TEXTS[langue]["synth_title"]] +
+            [fname.split('.')[0] for fname in fusion['Fichier'].unique()] +
             [TEXTS[langue]["branded_analysis"], TEXTS[langue]["raw_data"]]
         )
 
@@ -324,7 +397,7 @@ if uploaded_files and run_btn:
             fname = fusion['Fichier'].unique()[idx - 1]  # Récupère le nom du fichier actuel
             with tabs[idx]:
                 st.subheader(f"Analyse pour {fname}")
-                
+
                 # Filtrer les données du fichier actuel
                 file_data = fusion[fusion["Fichier"] == fname]
                 n_total = len(file_data)
@@ -380,7 +453,7 @@ if uploaded_files and run_btn:
                         width=825,    # Ajuste la largeur
                         margin=dict(t=50, b=20, l=20, r=20)  # Marges autour du graphique
                     )
-                    
+
                     st.plotly_chart(fig3, use_container_width=True)
 
                 with colbar:
@@ -392,7 +465,7 @@ if uploaded_files and run_btn:
                         title=f"Distribution globale pour {fname}"
                     )
                     fig4.update_traces(texttemplate='%{y}', textposition='outside')  # Affiche uniquement les valeurs
-                                        # Ajustement de la taille et des marges
+                    # Ajustement de la taille et des marges
                     fig4.update_layout(
                         height=550,   # Ajuste la hauteur
                         width=500,    # Ajuste la largeur
@@ -417,7 +490,7 @@ if uploaded_files and run_btn:
             # Calculer les totaux
             total_branded = summary_data['KW_branded'].sum()
             total_nonbranded = summary_data['KW_nonbranded'].sum()
-            
+
             # Créer une ligne de total
             total_row = pd.DataFrame({
                 'Fichier': ['TOTAL'],
@@ -434,7 +507,7 @@ if uploaded_files and run_btn:
             # Graphique en camembert
             pie_values = [total_nonbranded, total_branded]
             pie_labels = ['Non-Branded', 'Branded']
-            
+
             fig_pie = px.pie(
                 names=pie_labels,
                 values=pie_values,
@@ -442,11 +515,10 @@ if uploaded_files and run_btn:
                 color_discrete_sequence=["#FF9800", "#4CAF50"],  # Couleurs pour Non-Branded et Branded
                 title="Répartition des Mots-Clés Branded et Non-Branded"
             )
-            
+
             # Ajustements pour afficher les pourcentages à l'intérieur des parts
             fig_pie.update_traces(textinfo='percent+label')  # Affiche pourcentage + label
             st.plotly_chart(fig_pie, use_container_width=True)
-
 
         # Onglet données brutes
         with tabs[-1]:
