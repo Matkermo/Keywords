@@ -561,13 +561,6 @@ if uploaded_files and run_btn:
         # Sélectionner et réorganiser les colonnes pour l'affichage
         ordered_display_columns = ["Keyword", "Source", "branded", "reason", "Category", "Position", "Previous position", "Search Volume", "Keyword Difficulty", "URL"]
 
-        # Vérifier les colonnes disponibles pour l'affichage
-        if set(ordered_display_columns).issubset(fusion.columns):
-            fusion_display_ordered = fusion[ordered_display_columns]
-        else:
-            st.warning("Certaines colonnes d'affichage ne sont pas présentes dans le DataFrame.")
-            fusion_display_ordered = fusion
-
         st.dataframe(fusion_display_ordered, use_container_width=True)
 
         # Fonction de préparation des données pour le téléchargement
